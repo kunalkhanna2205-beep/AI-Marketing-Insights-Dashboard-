@@ -1,0 +1,224 @@
+/* Enhanced CSS - Tailwind handles most styling, this adds premium polish */
+
+/* Glass-effect refinements */
+.glass-effect {
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+}
+
+.glass-effect:hover {
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Gradient button refinements - Premium Blue */
+.gradient-btn {
+    background: linear-gradient(135deg, #0059B2 0%, #003D85 100%);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.gradient-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    transition: left 0.3s ease;
+}
+
+.gradient-btn:hover {
+    background: linear-gradient(135deg, #0059B2 0%, #003D85 100%);
+    box-shadow: 0 0 20px rgba(0, 89, 178, 0.4);
+}
+
+.gradient-btn:hover::before {
+    left: 100%;
+}
+
+/* Metric card polish - Premium Design */
+.metric-card {
+    background: rgba(30, 41, 59, 0.8);
+    border-left: 4px solid #0059B2;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 24px;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.4), 0 4px 8px -1px rgba(0, 0, 0, 0.25);
+}
+
+
+/* Form Inputs & Dropdowns - Premium Styling */
+input {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 12px 16px !important;
+    border-radius: 12px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    color: #f1f5f9 !important;
+}
+
+select {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #f1f5f9 !important;
+    /* Increased right padding to prevent text from hitting the arrow */
+    padding: 12px 40px 12px 16px !important; 
+    border-radius: 12px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    
+    /* Hide the default OS arrow */
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    
+    /* Inject a custom, premium chevron icon (slate-400 color) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 16px !important;
+}
+
+select:hover, input:hover {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+select option {
+    background-color: #1e293b !important; /* Dark slate background matching your theme */
+    color: #f1f5f9 !important;            /* White/slate text */
+}
+select:focus, input:focus {
+    border-color: #0059B2 !important;
+    box-shadow: 0 0 0 3px rgba(0, 89, 178, 0.3) !important;
+    outline: none !important;
+}
+
+button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.5);
+}
+
+/* Chat message styling */
+.msg-ai strong {
+    color: #60a5fa;
+    font-weight: 700;
+}
+
+.system-msg {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Sidebar button hover effects */
+nav button {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+nav button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 89, 178, 0.15);
+    transition: left 0.3s ease;
+    z-index: -1;
+}
+
+nav button:hover::after {
+    left: 0;
+}
+
+/* Enhanced animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Chart container polish */
+.chart-container {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Chart grid line styling */
+.plotly .gridlayer .xgrid line,
+.plotly .gridlayer .ygrid line {
+    stroke-opacity: 0.05 !important;
+}
+
+/* Daily volatility line styling - Enhanced visibility */
+.plotly .scatterlayer .trace.scatter .lines {
+    stroke-opacity: 0.45 !important;
+    stroke-dasharray: 4 !important;
+    stroke-width: 1px !important;
+}
+
+/* Generate Forecast Button */
+.generate-forecast-btn {
+    background: #0059B2 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 89, 178, 0.2) !important;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    cursor: pointer !important;
+}
+
+.generate-forecast-btn:hover {
+    background: #004A99 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 12px -2px rgba(0, 89, 178, 0.35) !important;
+}
+
+.generate-forecast-btn:active {
+    transform: translateY(0) !important;
+}
