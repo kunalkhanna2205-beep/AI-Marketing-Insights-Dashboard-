@@ -52,8 +52,17 @@ async def analyze_data(file: UploadFile = File(...)):
         # 1. Clean data safely
         if 'Acquisition_Cost' in df.columns and df['Acquisition_Cost'].dtype == 'object':
             df['Acquisition_Cost'] = df['Acquisition_Cost'].replace(r'[$,]', '', regex=True).astype(float)
-            
-        # 2. SAVE TO RAM (Instantly)
+
+                # List of columns that should strictly be numbers
+        numeric_columns = ['Impressions', 'ROI', 'Acquisition_Cost', 'Clicks', 'Engagement_Score']
+
+        for col in numeric_columns:
+            if col in df.columns:
+                # Convert to string first to use string methods safely, then remove $, %, and commas
+                df[col] = df[col].astype(str).str.replace(r'[$,%]', '', regex=True)
+                # Convert back to numeric, turning empty/bad values into NaN
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+                # 2. SAVE TO RAM (Instantly)
         APP_STATE["current_dataset"] = df
         
         # Calculate Core Numbers
