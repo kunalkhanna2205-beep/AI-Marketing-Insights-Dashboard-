@@ -15,12 +15,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=False, # Must be False when allow_origins is "*"
-    allow_methods=["*"],
+    allow_origins=["*"],  # This tells Render to accept requests from ANY website (including Vercel)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows POST, GET, etc.
     allow_headers=["*"],
 )
-
 
 
 # Load variables from the .env file
