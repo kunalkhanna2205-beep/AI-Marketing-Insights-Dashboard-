@@ -1,5 +1,9 @@
 fastapi
 uvicorn
-groq
-pydantic
 python-multipart
+pydantic
+pandas
+numpy
+groq
+statsmodels
+python-dotenv
