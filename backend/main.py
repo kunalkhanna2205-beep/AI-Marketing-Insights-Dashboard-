@@ -12,12 +12,11 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from dotenv import load_dotenv
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
-    allow_credentials=True,
+    allow_credentials=False, # Must be False when allow_origins is "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -44,7 +43,7 @@ class NarrativeRequest(BaseModel):
     bot_seg: str
     diagnostic_reason: str
 
-@app.post("/api/analyze")
+@app.post("/api/upload")
 async def analyze_data(file: UploadFile = File(...)):
     try:
         contents = await file.read()
