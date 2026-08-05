@@ -20,6 +20,11 @@ document.getElementById('csv-upload')?.addEventListener('change', async function
     try {
         const response = await fetch("https://ai-marketing-insights-dashboard.onrender.com/api/upload", { method: "POST", body: formData });
         const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
         // Push KPI Cards
         if (document.getElementById('reach-val')) document.getElementById('reach-val').innerText = data.kpis.reach || "0";
         if (document.getElementById('roi-val')) document.getElementById('roi-val').innerText = data.kpis.roi ? data.kpis.roi.toFixed(2) : "0.00";
@@ -50,7 +55,8 @@ document.getElementById('csv-upload')?.addEventListener('change', async function
         }
     } catch (error) {
         if (fileStatus) {
-            fileStatus.innerText = `✗ Error uploading ${file.name}`;
+            // This will now print the exact Python error on your screen
+            fileStatus.innerText = `✗ ${error.message}`; 
             fileStatus.classList.add('text-red-400');
         }
         console.error("Upload Error:", error);
