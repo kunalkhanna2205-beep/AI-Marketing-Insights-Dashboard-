@@ -738,23 +738,32 @@ async function buildAndDownloadReport() {
             </div>
         `;
 // =================================================================
-        // GENERATE PDF (RAW STRING FIX)
+        // GENERATE PDF (DOM ELEMENT + FORCED DIMENSIONS FIX)
         // =================================================================
         if (aiData.error) {
             throw new Error(`AI Engine Error: ${aiData.error}`);
         }
 
+        // 1. Convert the raw HTML string into a real DOM element
+        const reportElement = document.createElement('div');
+        reportElement.innerHTML = reportHTML;
+
+        // 2. Configure html2pdf with strict window dimensions so it can't render a 0px blank page
         const opt = {
             margin:       0,
             filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                letterRendering: true,
+                windowWidth: 1200 // 🔥 Forces the invisible canvas to act like a desktop screen
+            },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Pass the raw HTML string directly into the PDF generator
-        // This prevents the browser from rendering it as a blank off-screen box
-        await html2pdf().set(opt).from(reportHTML).save();
+        // 3. Pass the actual element into the generator
+        await html2pdf().set(opt).from(reportElement).save();
 
     } catch (error) {
         console.error("Report Engine Crash:", error);
