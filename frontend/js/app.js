@@ -738,13 +738,17 @@ async function buildAndDownloadReport() {
             </div>
         `;
 // =================================================================
-        // GENERATE PDF (NATIVE TEXT ENGINE - 100% RELIABLE)
+        // GENERATE PDF (SAFE GLOBAL OBJECT FIX)
         // =================================================================
         if (aiData.error) {
             throw new Error(`AI Engine Error: ${aiData.error}`);
         }
 
-        // Initialize jsPDF directly
+        // Check if jsPDF loaded correctly
+        if (typeof window.jspdf === 'undefined') {
+            throw new Error("PDF library failed to load. Please check your internet connection or index.html scripts.");
+        }
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({
             unit: 'in',
@@ -752,47 +756,41 @@ async function buildAndDownloadReport() {
             orientation: 'portrait'
         });
 
-        // Set up clean typography
+        // Add Header
         doc.setFont("Helvetica", "bold");
-        doc.setFontSize(20);
-        doc.setTextColor(15, 23, 42); // Slate 900
+        doc.setFontSize(18);
+        doc.setTextColor(15, 23, 42); 
         doc.text("Executive Marketing Briefing", 0.75, 0.75);
 
         doc.setFont("Helvetica", "normal");
         doc.setFontSize(10);
-        doc.setTextColor(100, 116, 139); // Slate 500
+        doc.setTextColor(100, 116, 139); 
         doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 0.75, 1.0);
 
-        // Draw a neat divider line
         doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.01);
         doc.line(0.75, 1.2, 7.75, 1.2);
 
-        // Parse and print the AI insights cleanly line by line
-        doc.setFontSize(11);
-        doc.setTextColor(30, 41, 59); // Slate 800
-
-        // Strip HTML tags so it prints pure readable text
+        // Strip HTML tags for clean text printing
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = reportHTML;
         const plainText = tempDiv.innerText || tempDiv.textContent || "";
 
-        // Split text automatically to fit standard page margins (7 inches wide)
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59); 
+
         const splitText = doc.splitTextToSize(plainText, 7.0);
-        
         let cursorY = 1.5;
-        const pageHeight = 10.5; // Standard letter page height minus margins
+        const pageHeight = 10.0; 
 
         for (let i = 0; i < splitText.length; i++) {
             if (cursorY > pageHeight) {
                 doc.addPage();
-                cursorY = 0.75; // Reset top margin on new pages
+                cursorY = 0.75; 
             }
             doc.text(splitText[i], 0.75, cursorY);
-            cursorY += 0.25; // Line spacing
+            cursorY += 0.22; 
         }
 
-        // Save the clean, native PDF file
         doc.save(`Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`);
 
     } catch (error) {
