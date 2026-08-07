@@ -407,3 +407,4 @@ async def generate_narrative(req: NarrativeRequest):
     except Exception as e:
         print(f"Report Generation Error: {str(e)}")
         return {"error": str(e)}
+    # forcing render to update
