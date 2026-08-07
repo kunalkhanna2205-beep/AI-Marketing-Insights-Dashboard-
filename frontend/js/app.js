@@ -738,51 +738,67 @@ async function buildAndDownloadReport() {
             </div>
         `;
 // =================================================================
-        // GENERATE PDF (LIVE DOM ATTACHMENT FIX)
+        // GENERATE PDF (NATIVE TEXT ENGINE - 100% RELIABLE)
         // =================================================================
         if (aiData.error) {
             throw new Error(`AI Engine Error: ${aiData.error}`);
         }
 
-        // 1. Create a container and attach it to the LIVE DOM
-        // (html2canvas requires the element to be on the page to calculate its size)
-        const reportContainer = document.createElement('div');
-        reportContainer.innerHTML = reportHTML;
+        // Initialize jsPDF directly
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            unit: 'in',
+            format: 'letter',
+            orientation: 'portrait'
+        });
+
+        // Set up clean typography
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(20);
+        doc.setTextColor(15, 23, 42); // Slate 900
+        doc.text("Executive Marketing Briefing", 0.75, 0.75);
+
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139); // Slate 500
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 0.75, 1.0);
+
+        // Draw a neat divider line
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.01);
+        doc.line(0.75, 1.2, 7.75, 1.2);
+
+        // Parse and print the AI insights cleanly line by line
+        doc.setFontSize(11);
+        doc.setTextColor(30, 41, 59); // Slate 800
+
+        // Strip HTML tags so it prints pure readable text
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = reportHTML;
+        const plainText = tempDiv.innerText || tempDiv.textContent || "";
+
+        // Split text automatically to fit standard page margins (7 inches wide)
+        const splitText = doc.splitTextToSize(plainText, 7.0);
         
-        // 2. Hide it far off-screen and force a strict desktop width & white background
-        reportContainer.style.position = 'absolute';
-        reportContainer.style.left = '-9999px';
-        reportContainer.style.top = '0';
-        reportContainer.style.width = '1200px'; 
-        reportContainer.style.backgroundColor = '#ffffff';
-        reportContainer.style.color = '#000000';
-        
-        document.body.appendChild(reportContainer);
+        let cursorY = 1.5;
+        const pageHeight = 10.5; // Standard letter page height minus margins
 
-        // 3. Configure html2pdf
-        const opt = {
-            margin:       0,
-            filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
-            image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                logging: false 
-            },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
+        for (let i = 0; i < splitText.length; i++) {
+            if (cursorY > pageHeight) {
+                doc.addPage();
+                cursorY = 0.75; // Reset top margin on new pages
+            }
+            doc.text(splitText[i], 0.75, cursorY);
+            cursorY += 0.25; // Line spacing
+        }
 
-        // 4. Generate the PDF and wait for it to finish downloading
-        await html2pdf().set(opt).from(reportContainer).save();
-
-        // 5. Cleanup: Delete the hidden container from the webpage so it doesn't slow down the browser
-        document.body.removeChild(reportContainer);
+        // Save the clean, native PDF file
+        doc.save(`Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`);
 
     } catch (error) {
         console.error("Report Engine Crash:", error);
         alert(`An error occurred while generating the report: ${error.message}`);
     } finally {
-        // Always reset the button and hide the loading overlay, even if it fails
         const loadingOverlay = document.getElementById('loading-overlay');
         const btn = document.getElementById('generate-report-btn');
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
