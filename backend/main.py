@@ -10,6 +10,7 @@ from groq import Groq
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from fastapi.responses import Response
 from dotenv import load_dotenv
+import gc
 
 app = FastAPI()
 
