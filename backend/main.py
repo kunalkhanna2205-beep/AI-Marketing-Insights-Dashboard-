@@ -16,7 +16,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # This tells Render to accept requests from ANY website (including Vercel)
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],  # Allows POST, GET, etc.
     allow_headers=["*"],
@@ -208,8 +208,7 @@ async def get_time_series(metric: str = "ROI", window: str = "daily_7", forecast
         agg_data = df_ts[metric].resample(resample_freq).mean().reset_index()
         
         # Interpolate missing gaps instead of filling with 0 (which breaks time series models)
-        agg_data[metric] = agg_data[metric].interpolate(method='linear').fillna(method='bfill').fillna(0)
-        
+        agg_data[metric] = agg_data[metric].interpolate(method='linear').bfill().fillna(0)        
         # Apply dynamic rolling average
         agg_data['Moving_Avg'] = agg_data[metric].rolling(window=rolling_win, min_periods=1).mean()
         

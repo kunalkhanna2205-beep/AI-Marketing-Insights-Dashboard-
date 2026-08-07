@@ -737,8 +737,8 @@ async function buildAndDownloadReport() {
                 </div>   
             </div>
         `;
-       // =================================================================
-        // GENERATE PDF (DOM INJECTION FIX)
+// =================================================================
+        // GENERATE PDF (RAW STRING FIX)
         // =================================================================
         if (aiData.error) {
             throw new Error(`AI Engine Error: ${aiData.error}`);
@@ -749,31 +749,25 @@ async function buildAndDownloadReport() {
             filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
             html2canvas:  { scale: 2, useCORS: true, logging: false },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-            pagebreak:    { mode: ['css', 'legacy'] }
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // Provide a 1.5-second buffer to ensure the LLM text is fully parsed 
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 🔥 FIX: Attach HTML to a temporary hidden DOM element to prevent blank pages
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = reportHTML;
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        document.body.appendChild(tempContainer);
+        // Pass the raw HTML string directly into the PDF generator
+        // This prevents the browser from rendering it as a blank off-screen box
+        await html2pdf().set(opt).from(reportHTML).save();
 
-        await html2pdf().set(opt).from(tempContainer).save();
-
-        // Cleanup
-        document.body.removeChild(tempContainer);
-        
     } catch (error) {
         console.error("Report Engine Crash:", error);
         alert(`An error occurred while generating the report: ${error.message}`);
     } finally {
+        // Always reset the button and hide the loading overlay, even if it fails
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const btn = document.getElementById('generate-report-btn');
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
-        btn.innerHTML = originalText;
+        btn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span>Export Report</span>
+        `;
         btn.disabled = false;
     }
 }
