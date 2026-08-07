@@ -738,17 +738,28 @@ async function buildAndDownloadReport() {
             </div>
         `;
 // =================================================================
-        // GENERATE PDF (DOM ELEMENT + FORCED DIMENSIONS FIX)
+        // GENERATE PDF (LIVE DOM ATTACHMENT FIX)
         // =================================================================
         if (aiData.error) {
             throw new Error(`AI Engine Error: ${aiData.error}`);
         }
 
-        // 1. Convert the raw HTML string into a real DOM element
-        const reportElement = document.createElement('div');
-        reportElement.innerHTML = reportHTML;
+        // 1. Create a container and attach it to the LIVE DOM
+        // (html2canvas requires the element to be on the page to calculate its size)
+        const reportContainer = document.createElement('div');
+        reportContainer.innerHTML = reportHTML;
+        
+        // 2. Hide it far off-screen and force a strict desktop width & white background
+        reportContainer.style.position = 'absolute';
+        reportContainer.style.left = '-9999px';
+        reportContainer.style.top = '0';
+        reportContainer.style.width = '1200px'; 
+        reportContainer.style.backgroundColor = '#ffffff';
+        reportContainer.style.color = '#000000';
+        
+        document.body.appendChild(reportContainer);
 
-        // 2. Configure html2pdf with strict window dimensions so it can't render a 0px blank page
+        // 3. Configure html2pdf
         const opt = {
             margin:       0,
             filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
@@ -756,14 +767,16 @@ async function buildAndDownloadReport() {
             html2canvas:  { 
                 scale: 2, 
                 useCORS: true, 
-                letterRendering: true,
-                windowWidth: 1200 // 🔥 Forces the invisible canvas to act like a desktop screen
+                logging: false 
             },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
         };
 
-        // 3. Pass the actual element into the generator
-        await html2pdf().set(opt).from(reportElement).save();
+        // 4. Generate the PDF and wait for it to finish downloading
+        await html2pdf().set(opt).from(reportContainer).save();
+
+        // 5. Cleanup: Delete the hidden container from the webpage so it doesn't slow down the browser
+        document.body.removeChild(reportContainer);
 
     } catch (error) {
         console.error("Report Engine Crash:", error);
