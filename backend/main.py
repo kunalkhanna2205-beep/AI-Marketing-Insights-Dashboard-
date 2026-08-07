@@ -402,7 +402,7 @@ async def generate_narrative(req: NarrativeRequest):
         if raw_text.endswith("```"):
             raw_text = raw_text[:-3]
             
-        return json.loads(raw_text.strip())
+        return json.loads(raw_text.strip(), strict=False)
         
     except Exception as e:
         print(f"Report Generation Error: {str(e)}")
