@@ -42,6 +42,7 @@ document.getElementById('csv-upload')?.addEventListener('change', async function
             setTimeout(() => {
                 try { drawDeepDive(); } catch(e) { console.error("Deep Dive Error:", e); }
                 try { drawSunburst(); } catch(e) { console.error("Sunburst Error:", e); }
+                try { updateForecast(); } catch(e) { console.error("Forecast Error:", e); } // 🔥 THIS FIXES THE CHART
             }, 100);
         }
         if (document.getElementById('chat-history')) {
@@ -737,8 +738,12 @@ async function buildAndDownloadReport() {
             </div>
         `;
        // =================================================================
-        // GENERATE PDF (STANDARD STRING INJECTION)
+        // GENERATE PDF (DOM INJECTION FIX)
         // =================================================================
+        if (aiData.error) {
+            throw new Error(`AI Engine Error: ${aiData.error}`);
+        }
+
         const opt = {
             margin:       0,
             filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
@@ -747,14 +752,25 @@ async function buildAndDownloadReport() {
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
             pagebreak:    { mode: ['css', 'legacy'] }
         };
+
         // Provide a 1.5-second buffer to ensure the LLM text is fully parsed 
-        // in memory before triggering the PDF canvas
         await new Promise(resolve => setTimeout(resolve, 1500));
-        // Generate directly from the HTML string without touching the live DOM
-        await html2pdf().set(opt).from(reportHTML).save();
+        
+        // 🔥 FIX: Attach HTML to a temporary hidden DOM element to prevent blank pages
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = reportHTML;
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        document.body.appendChild(tempContainer);
+
+        await html2pdf().set(opt).from(tempContainer).save();
+
+        // Cleanup
+        document.body.removeChild(tempContainer);
+        
     } catch (error) {
-        console.error("PDF Engine Render Crash:", error);
-        alert("An error occurred while generating the report. Please try again.");
+        console.error("Report Engine Crash:", error);
+        alert(`An error occurred while generating the report: ${error.message}`);
     } finally {
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
         btn.innerHTML = originalText;

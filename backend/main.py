@@ -383,7 +383,7 @@ async def generate_narrative(req: NarrativeRequest):
     }
     """
 
-    # 3. Execute LLM Call
+   # 3. Execute LLM Call
     try:
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -391,11 +391,20 @@ async def generate_narrative(req: NarrativeRequest):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": data_payload}
             ],
-            temperature=0.1, # Extremely low temperature to enforce strict adherence to provided numbers
-            response_format={"type": "json_object"}
+            temperature=0.1, 
         )
         
-        return json.loads(completion.choices[0].message.content)
+        # 🔥 FIX: Strip markdown formatting (```json) before passing to JSON parser
+        raw_text = completion.choices[0].message.content.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        if raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+            
+        return json.loads(raw_text.strip())
         
     except Exception as e:
+        print(f"Report Generation Error: {str(e)}")
         return {"error": str(e)}
