@@ -8,7 +8,7 @@ import io
 import os
 from groq import Groq
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-# Replace with your actual Groq API Key
+from fastapi.responses import Response
 from dotenv import load_dotenv
 
 app = FastAPI()
@@ -98,16 +98,17 @@ async def analyze_data(file: UploadFile = File(...)):
                             "y": grouped[kpi].tolist()
                         }
 
-        # THE SPEED FIX: Sample the Sunburst Data
+       # THE ULTIMATE MEMORY BYPASS: 100% Data, Zero FastAPI Validation Overhead
         sunburst_columns = [
             'Age_Group', 'Target_Gender', 'Channel_Used', 'Campaign_Goal', 
             'Location', 'Language', 'Customer_Segment', 'Impressions', 
             'Clicks', 'ROI', 'Engagement_Score', 'Acquisition_Cost' 
         ]
         available_sun_cols = [c for c in sunburst_columns if c in df.columns]
-        sampled_df = df
-        sunburst_raw_data = sampled_df[available_sun_cols].to_dict(orient='records')
-
+        
+        # 1. Use Pandas ultra-fast C-engine to convert directly to a JSON string (Uses almost zero RAM)
+        sunburst_json_str = df[available_sun_cols].to_json(orient='records')
+        
         # CONSOLIDATED AI KNOWLEDGE BASE
         def get_2way_avg(col1, col2, metric):
             if all(c in df.columns for c in [col1, col2, metric]):
@@ -141,20 +142,29 @@ async def analyze_data(file: UploadFile = File(...)):
             }
         }
 
-        return {
-            "kpis": {
-                "reach": f"{reach / 1_000_000:.1f}M" if reach > 0 else "0",
-                "roi": round(avg_roi, 2),
-                "cac": round(avg_cac, 2)
-            },
-            "synthesis": synthesis_notes,
-            "fact_sheet": json.dumps(ai_knowledge_base),
-            "deep_dive_data": deep_dive_data,
-            "sunburst_raw_data": sunburst_raw_data
-        }
+        # 2. Build the final JSON string manually to completely bypass FastAPI memory spikes
+        kpis_json = json.dumps({
+            "reach": f"{reach / 1_000_000:.1f}M" if reach > 0 else "0",
+            "roi": round(avg_roi, 2),
+            "cac": round(avg_cac, 2)
+        })
+        
+        synthesis_json = json.dumps(synthesis_notes)
+        fact_sheet_json = json.dumps(json.dumps(ai_knowledge_base)) 
+        deep_dive_json = json.dumps(deep_dive_data)
+
+        # Stitch it all together into one raw text payload
+        final_json_str = f'{{"kpis": {kpis_json}, "synthesis": {synthesis_json}, "fact_sheet": {fact_sheet_json}, "deep_dive_data": {deep_dive_json}, "sunburst_raw_data": {sunburst_json_str}}}'
+
+        # 3. Clean out RAM instantly
+        gc.collect()
+
+        # 4. Return raw response (FastAPI won't try to validate it, saving massive memory)
+        return Response(content=final_json_str, media_type="application/json")
+        
     except Exception as e:
         print(f"Error during analysis: {str(e)}")
-        return {"error": str(e)}
+        return Response(content=json.dumps({"error": str(e)}), media_type="application/json")
 
 @app.post("/api/timeseries")
 async def get_time_series(metric: str = "ROI", window: str = "daily_7", forecast_days: int = 30):
