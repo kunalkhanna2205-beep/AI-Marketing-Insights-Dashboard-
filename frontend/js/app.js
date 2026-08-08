@@ -730,25 +730,69 @@ async function buildAndDownloadReport() {
             </div>
         `;
         
-        // 🔥 FIX 3: Back to the clean string export. No DOM hacks needed now that vh is gone.
-        const opt = {
-            margin:       0,
-            filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
-            image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-            pagebreak:    { mode: ['css', 'legacy'] }
-        };
+ // =================================================================
+        // GENERATE PDF (NATIVE BROWSER ENGINE - 100% BULLETPROOF)
+        // =================================================================
         
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await html2pdf().set(opt).from(reportHTML).save();
-        
+        // 1. Create an invisible iframe so we don't disrupt the user's dashboard
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+
+        // 2. Write the HTML directly into the iframe
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Executive_Briefing_${new Date().toISOString().split('T')[0]}</title>
+                <style>
+                    /* Force the browser to print your exact background colors and remove default margins */
+                    @media print {
+                        @page { margin: 0; size: letter portrait; }
+                        body { 
+                            -webkit-print-color-adjust: exact !important; 
+                            print-color-adjust: exact !important; 
+                            margin: 0; 
+                        }
+                    }
+                </style>
+            </head>
+            <body style="margin:0; padding:0; background-color: #ffffff;">
+                ${reportHTML}
+            </body>
+            </html>
+        `);
+        iframe.contentWindow.document.close();
+
+        // 3. Give the browser 500ms to load the chart image, then trigger the native print dialog
+        await new Promise(resolve => {
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print(); // This opens the native "Save as PDF" dialog
+                document.body.removeChild(iframe);
+                resolve();
+            }, 500);
+        });
+
     } catch (error) {
         console.error("PDF Engine Render Crash:", error);
         alert("An error occurred while generating the report. Please try again.");
     } finally {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const btn = document.getElementById('generate-report-btn');
+        const originalText = "Export Report";
+        
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        if (btn) {
+            btn.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span>${originalText}</span>
+            `;
+            btn.disabled = false;
+        }
     }
 }
