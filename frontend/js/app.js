@@ -738,65 +738,55 @@ async function buildAndDownloadReport() {
             </div>
         `;
 // =================================================================
-        // GENERATE PDF (HIGH-FIDELITY HTML RENDERING FIX)
+        // GENERATE PDF (GUARANTEED VISUAL RENDER FIX)
         // =================================================================
-        if (aiData.error) {
-            throw new Error(`AI Engine Error: ${aiData.error}`);
-        }
-
-        // 1. Create a physical container for the report
-        const reportContainer = document.createElement('div');
-        reportContainer.innerHTML = reportHTML;
-        
-        // 2. Force desktop width and white background, but hide it BEHIND the current page
-        // This prevents the browser from discarding it as a 0px off-screen element
-        reportContainer.style.position = 'absolute';
-        reportContainer.style.top = '0';
-        reportContainer.style.left = '0';
-        reportContainer.style.width = '1200px'; 
-        reportContainer.style.backgroundColor = '#ffffff';
-        reportContainer.style.color = '#000000';
-        reportContainer.style.zIndex = '-1000'; 
-        reportContainer.style.padding = '40px';
-        
-        // 3. Attach to the live webpage
-        document.body.appendChild(reportContainer);
-
-        // 4. 🔥 Give the browser exactly 500ms to paint the tables and charts 
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 5. Configure the high-fidelity screenshot engine
         const opt = {
-            margin:       0.3,
+            margin:       0,
             filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
             html2canvas:  { 
                 scale: 2, 
                 useCORS: true, 
                 logging: false,
-                windowWidth: 1200,
-                scrollY: 0 // Prevents the screenshot from cutting off if you are scrolled down
+                windowWidth: 1200, // Forces a strict desktop layout for your tables
+                scrollY: 0
             },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'] }
         };
 
-        // 6. Generate the formatted PDF
+        // 1. Create a physical container for the report
+        const reportElement = document.createElement('div');
+        reportElement.innerHTML = reportHTML;
+        
+        // 2. Explicitly style the container so the browser is FORCED to paint it.
+        // We set it to 1200px wide, but use a massive negative z-index so it sits 
+        // invisibly behind your dashboard's dark background.
+        reportElement.style.position = 'absolute';
+        reportElement.style.top = '0';
+        reportElement.style.left = '0';
+        reportElement.style.width = '1200px'; 
+        reportElement.style.backgroundColor = '#ffffff';
+        reportElement.style.zIndex = '-9999'; 
+        
+        // 3. Attach it physically to the DOM
+        document.body.appendChild(reportElement);
 
-        await html2pdf().set(opt).from(reportContainer).save();
-        // 7. Cleanup: Delete the hidden container
-        document.body.removeChild(reportContainer);
+        // 4. Force a strict 1-second delay so the browser fully renders the tables and charts
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 5. Generate the PDF from the live DOM element (not the string!)
+        await html2pdf().set(opt).from(reportElement).save();
+
+        // 6. Cleanup the invisible element so it doesn't clutter the page
+        document.body.removeChild(reportElement);
 
     } catch (error) {
-        console.error("Report Engine Crash:", error);
-        alert(`An error occurred while generating the report: ${error.message}`);
+        console.error("PDF Engine Render Crash:", error);
+        alert("An error occurred while generating the report. Please try again.");
     } finally {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const btn = document.getElementById('generate-report-btn');
         if (loadingOverlay) loadingOverlay.classList.add('hidden');
-        btn.innerHTML = `
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            <span>Export Report</span>
-        `;
+        btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
