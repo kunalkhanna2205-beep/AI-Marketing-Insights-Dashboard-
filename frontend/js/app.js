@@ -738,60 +738,53 @@ async function buildAndDownloadReport() {
             </div>
         `;
 // =================================================================
-        // GENERATE PDF (SAFE GLOBAL OBJECT FIX)
+        // GENERATE PDF (HIGH-FIDELITY HTML RENDERING FIX)
         // =================================================================
         if (aiData.error) {
             throw new Error(`AI Engine Error: ${aiData.error}`);
         }
 
-        // Check if jsPDF loaded correctly
-        if (typeof window.jspdf === 'undefined') {
-            throw new Error("PDF library failed to load. Please check your internet connection or index.html scripts.");
-        }
+        // 1. Create a physical container for the report
+        const reportContainer = document.createElement('div');
+        reportContainer.innerHTML = reportHTML;
+        
+        // 2. Force desktop width and white background, but hide it BEHIND the current page
+        // This prevents the browser from discarding it as a 0px off-screen element
+        reportContainer.style.position = 'absolute';
+        reportContainer.style.top = '0';
+        reportContainer.style.left = '0';
+        reportContainer.style.width = '1200px'; 
+        reportContainer.style.backgroundColor = '#ffffff';
+        reportContainer.style.color = '#000000';
+        reportContainer.style.zIndex = '-1000'; 
+        reportContainer.style.padding = '40px';
+        
+        // 3. Attach to the live webpage
+        document.body.appendChild(reportContainer);
 
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({
-            unit: 'in',
-            format: 'letter',
-            orientation: 'portrait'
-        });
+        // 4. 🔥 Give the browser exactly 500ms to paint the tables and charts 
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Add Header
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(18);
-        doc.setTextColor(15, 23, 42); 
-        doc.text("Executive Marketing Briefing", 0.75, 0.75);
+        // 5. Configure the high-fidelity screenshot engine
+        const opt = {
+            margin:       0.3,
+            filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
+            image:        { type: 'jpeg', quality: 1.0 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                windowWidth: 1200,
+                scrollY: 0 // Prevents the screenshot from cutting off if you are scrolled down
+            },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
 
-        doc.setFont("Helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(100, 116, 139); 
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 0.75, 1.0);
+        // 6. Generate the formatted PDF
+        await window.jspdf.html2pdf().set(opt).from(reportContainer).save();
 
-        doc.setDrawColor(226, 232, 240);
-        doc.line(0.75, 1.2, 7.75, 1.2);
-
-        // Strip HTML tags for clean text printing
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = reportHTML;
-        const plainText = tempDiv.innerText || tempDiv.textContent || "";
-
-        doc.setFontSize(10);
-        doc.setTextColor(30, 41, 59); 
-
-        const splitText = doc.splitTextToSize(plainText, 7.0);
-        let cursorY = 1.5;
-        const pageHeight = 10.0; 
-
-        for (let i = 0; i < splitText.length; i++) {
-            if (cursorY > pageHeight) {
-                doc.addPage();
-                cursorY = 0.75; 
-            }
-            doc.text(splitText[i], 0.75, cursorY);
-            cursorY += 0.22; 
-        }
-
-        doc.save(`Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`);
+        // 7. Cleanup: Delete the hidden container
+        document.body.removeChild(reportContainer);
 
     } catch (error) {
         console.error("Report Engine Crash:", error);
