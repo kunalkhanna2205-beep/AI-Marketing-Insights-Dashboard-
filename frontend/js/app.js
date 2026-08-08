@@ -781,8 +781,8 @@ async function buildAndDownloadReport() {
         };
 
         // 6. Generate the formatted PDF
-        await window.jspdf.html2pdf().set(opt).from(reportContainer).save();
 
+        await html2pdf().set(opt).from(reportContainer).save();
         // 7. Cleanup: Delete the hidden container
         document.body.removeChild(reportContainer);
 
