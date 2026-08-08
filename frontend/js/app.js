@@ -421,15 +421,15 @@ async function buildAndDownloadReport() {
         alert("Data must be loaded before generating a report.");
         return;
     }
-    // Turn on the loading overlay to signal work is happening
+    
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
     const btn = document.getElementById('generate-report-btn');
     const originalText = btn.innerHTML;
     btn.innerHTML = "⏳ Generating AI Insight & Compiling Report...";
     btn.disabled = true;
+    
     try {
-        // Extract Core KPIs & Compute Executive Proxies
         const reachRaw = document.getElementById('reach-val')?.innerText || "0";
         const roiStr = document.getElementById('roi-val')?.innerText || "0.00";
         const cacStr = document.getElementById('cac-val')?.innerText || "$0.00";
@@ -446,7 +446,7 @@ async function buildAndDownloadReport() {
         
         const globalLTV = cac * (1 + roi);
         const globalRatio = cac > 0 ? (globalLTV / cac).toFixed(1) + "x" : "N/A";
-        // Extract Forecast Image
+        
         let forecastImg = "";
         try {
             const forecastContainer = document.getElementById('forecast-chart');
@@ -456,10 +456,11 @@ async function buildAndDownloadReport() {
         } catch (e) {
             console.warn("Forecast image extraction bypassed.");
         }
-        // Process Segment Deep Dive
+        
         const checkboxes = document.querySelectorAll('.matrix-dim:checked');
         let selectedDims = Array.from(checkboxes).map(cb => cb.value);
         if(selectedDims.length === 0) selectedDims = ['Channel_Used', 'Campaign_Goal', 'Target_Gender']; 
+        
         const groupMap = new Map();
         globalSunburstRaw.forEach(row => {
             const keyParts = selectedDims.map(dim => row[dim] || "Unknown");
@@ -479,6 +480,7 @@ async function buildAndDownloadReport() {
             group.count += 1;
             group.roiArray.push(r);
         });
+        
         const segments = [];
         groupMap.forEach(g => {
             if (g.impressions >= 100) {
@@ -504,26 +506,21 @@ async function buildAndDownloadReport() {
                 });
             }
         });
+        
         const winners = [...segments].sort((a, b) => b.roi - a.roi).slice(0, 5);
         const losers = [...segments].sort((a, b) => a.roi - b.roi).slice(0, 5);
         const topSegment = winners[0] || { channel: "Unknown", combo: "Unknown", roi: 0, cac: 0, ratio: "0x" };
         const bottomSegment = losers[0] || { channel: "Unknown", combo: "Unknown", roi: 0, cac: 0, ratio: "0x" };
         
-        // --- NEW: DETERMINISTIC ECONOMIC CALCULATIONS ---
-        // 1. Reallocation Amount (15% of total spend)
         const reallocationAmountNum = totalSpend * 0.15;
-        
-        // 2. True Opportunity Cost (Capital wasted by not moving bottom segment spend to the top segment)
         const roiDelta = topSegment.roi - bottomSegment.roi;
         const opportunityCostNum = bottomSegment.spend * (roiDelta > 0 ? roiDelta : 0);
-        
-        // 3. Expected Revenue Lift (Applies a 20% diminishing returns penalty to account for saturation)
         const expectedRevenueLiftNum = reallocationAmountNum * (topSegment.roi * 0.80);
         
-        // 4. Concentration Risk (New % of total budget concentrated in the top segment)
         const newTopSegmentSpend = topSegment.spend + reallocationAmountNum;
         const concentrationRiskPct = totalSpend > 0 ? ((newTopSegmentSpend / totalSpend) * 100).toFixed(1) : "0.0";
         const budgetDelta = "$" + (totalSpend * 0.15).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        
         const formatMoney = (amount) => "$" + amount.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
         const cleanCombo = (combo) => combo.replace(/ \| /g, ' / ');
        
@@ -536,6 +533,7 @@ async function buildAndDownloadReport() {
                 if (row.cv <= 0.40) volatility = `Low`;
                 else if (row.cv <= 0.85) volatility = `Medium`;
                 else volatility = `High`;
+                
                 return `
                     <tr style="border-bottom: 1px solid #e2e8f0; background: #ffffff;">
                         <td style="padding: 12px 8px; width: 45%; line-height: 1.4;">${badges}</td>
@@ -548,11 +546,12 @@ async function buildAndDownloadReport() {
                 `;
             }).join('');
         };
+        
         const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         const computedDiagnosticReason = bottomSegment.roi < 1.0 
             ? "Funnel Conversion Friction resulting in platform media waste and negative unit margin performance." 
             : "Audience and Frequency saturation resulting in diminishing multi-touch return curve.";
-        // Fetch AI Narrative for ENTIRE Document
+            
         let aiData = {};
         try {
             const narrativeResponse = await fetch('https://ai-marketing-insights-dashboard.onrender.com/api/report/narrative', {
@@ -571,12 +570,9 @@ async function buildAndDownloadReport() {
                     bot_roi: bottomSegment.roi.toFixed(2),
                     bot_cac: "$" + bottomSegment.cac.toFixed(2),
                     reallocation_amount: budgetDelta,
-                    
-                    // PASSING HARDCODED MATH TO THE BACKEND:
                     opportunity_cost: formatMoney(opportunityCostNum),
                     expected_revenue_lift: formatMoney(expectedRevenueLiftNum),
                     concentration_risk_pct: concentrationRiskPct + "%",
-                    
                     forecast_stats: globalForecastStats ? {
                         ...globalForecastStats,
                         roi_floor: 3.00,
@@ -601,30 +597,31 @@ async function buildAndDownloadReport() {
                 final_conclusion: "Final conclusion unavailable due to API disconnect."
             };
         }
+        
         const fmt = (text) => {
             if (!text) return '';
             const safeText = Array.isArray(text) ? text.join(' ') : String(text);
             return safeText.split('\n\n').map(p => `<p style="margin-bottom: 15px; margin-top: 0; line-height: 1.6; text-align: left;">${p}</p>`).join('');
         };
+        
         const finalConclusionText = aiData.final_conclusion || aiData.action_plan || aiData.conclusion || "Strategic reallocation of spend toward top-performing segments stabilizes portfolio ROI and mitigates revenue volatility.";
+        
+        // 🔥 FIX 1: Removed min-height: 90vh; entirely
+        // 🔥 FIX 2: Hardcoded width to 1200px so it forces desktop layout offline
         const reportHTML = `
-            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; background: #ffffff; width: 100%; margin: 0; padding: 0; line-height: 1.5;">
+            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0f172a; background: #ffffff; width: 1200px; margin: 0; padding: 0; line-height: 1.5;">
                 
-                <!-- ===================== PAGE 1 ===================== -->
-                <div style="padding: 40px 50px; page-break-after: always; min-height: 90vh;">
-                    <!-- Header -->
+                <div style="padding: 40px 50px; page-break-after: always;">
                     <div style="border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 35px;">
                         <h1 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Campaign Performance & Capital Allocation Request</h1>
                         <p style="margin: 5px 0 0 0; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Prepared For: Executive Leadership | Date: ${currentDate}</p>
                     </div>
-                    <!-- Executive Summary -->
                     <div style="margin-bottom: 35px;">
                         <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">1. Executive Summary</h2>
                         <div style="font-size: 12px; color: #334155; line-height: 1.6; text-align: left;">
                             ${fmt(aiData.executive_summary)}
                         </div>
                     </div>
-                    <!-- Portfolio Health Assessment -->
                     <div style="margin-bottom: 35px;">
                         <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">2. Portfolio Health Assessment</h2>
                         <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -645,7 +642,6 @@ async function buildAndDownloadReport() {
                             ${fmt(aiData.health_assessment)}
                         </div>
                     </div>
-                    <!-- Budget Allocation Recommendations -->
                     <div>
                         <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">3. Budget Allocation Recommendations</h2>
                         
@@ -661,8 +657,8 @@ async function buildAndDownloadReport() {
                         </div>
                     </div>
                 </div>
-                <!-- ===================== PAGE 2 ===================== -->
-                <div style="padding: 40px 50px; page-break-after: always; min-height: 90vh;">
+
+                <div style="padding: 40px 50px; page-break-after: always;">
                     <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">4. Performance Drivers & Segment Deep Dive</h2>
                     <div style="font-size: 12px; color: #334155; margin-bottom: 20px; text-align: left;">
                         ${fmt(aiData.performance_drivers)}
@@ -700,17 +696,14 @@ async function buildAndDownloadReport() {
                         <tbody>${buildTableRows(losers)}</tbody>
                     </table>
                 </div>
-                <!-- ===================== PAGE 3 ===================== -->
+
                 <div style="padding: 40px 50px; box-sizing: border-box;">
-                    
-                    <!-- Portfolio Risks -->
                     <div style="margin-bottom: 25px; page-break-inside: avoid; break-inside: avoid;">
                         <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">6. Portfolio Risks</h2>
                         <ul style="font-size: 12px; color: #334155; padding-left: 20px; margin: 0; line-height: 1.6; text-align: left;">
                             ${aiData.portfolio_risks}
                         </ul>
                     </div>
-                    <!-- Forecast & Strategic Outlook -->
                     <div style="margin-bottom: 25px; page-break-inside: avoid; break-inside: avoid;">
                         <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">7. Forecast & Strategic Outlook</h2>
                         
@@ -723,7 +716,6 @@ async function buildAndDownloadReport() {
                             ${fmt(aiData.strategic_outlook)}
                         </div>
                     </div>
-                    <!-- Final Conclusion -->
                     <div style="page-break-inside: avoid; break-inside: avoid; display: block; clear: both;">
                         <h2 style="color: #0f172a; font-size: 14px; text-transform: uppercase; font-weight: 700; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">8. Final Conclusion</h2>
                         <div style="font-size: 12px; color: #334155; text-align: left; line-height: 1.6; margin: 0; page-break-inside: auto;">
@@ -737,50 +729,20 @@ async function buildAndDownloadReport() {
                 </div>   
             </div>
         `;
-// =================================================================
-        // GENERATE PDF (GUARANTEED VISUAL RENDER FIX)
-        // =================================================================
+        
+        // 🔥 FIX 3: Back to the clean string export. No DOM hacks needed now that vh is gone.
         const opt = {
             margin:       0,
             filename:     `Executive_Briefing_${new Date().toISOString().split('T')[0]}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                logging: false,
-                windowWidth: 1200, // Forces a strict desktop layout for your tables
-                scrollY: 0
-            },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
             jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
             pagebreak:    { mode: ['css', 'legacy'] }
         };
-
-        // 1. Create a physical container for the report
-        const reportElement = document.createElement('div');
-        reportElement.innerHTML = reportHTML;
         
-        // 2. Explicitly style the container so the browser is FORCED to paint it.
-        // We set it to 1200px wide, but use a massive negative z-index so it sits 
-        // invisibly behind your dashboard's dark background.
-        reportElement.style.position = 'absolute';
-        reportElement.style.top = '0';
-        reportElement.style.left = '0';
-        reportElement.style.width = '1200px'; 
-        reportElement.style.backgroundColor = '#ffffff';
-        reportElement.style.zIndex = '-9999'; 
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await html2pdf().set(opt).from(reportHTML).save();
         
-        // 3. Attach it physically to the DOM
-        document.body.appendChild(reportElement);
-
-        // 4. Force a strict 1-second delay so the browser fully renders the tables and charts
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 5. Generate the PDF from the live DOM element (not the string!)
-        await html2pdf().set(opt).from(reportElement).save();
-
-        // 6. Cleanup the invisible element so it doesn't clutter the page
-        document.body.removeChild(reportElement);
-
     } catch (error) {
         console.error("PDF Engine Render Crash:", error);
         alert("An error occurred while generating the report. Please try again.");
